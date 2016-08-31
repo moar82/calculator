@@ -73,11 +73,6 @@ public class CalculatorEditable extends SpannableStringBuilder {
                 return super.replace(start, end, "");
             }
 
-            // don't allow the first character to be an operator
-            if(start == 0 && Solver.isOperator(text) && text != Constants.MINUS) {
-                return super.replace(start, end, "");
-            }
-
             // don't allow multiple successive operators
             if(Solver.isOperator(text) && text != Constants.MINUS) {
                 while(Solver.isOperator(prevChar)) {

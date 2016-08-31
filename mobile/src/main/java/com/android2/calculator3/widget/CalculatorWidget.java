@@ -47,11 +47,6 @@ public class CalculatorWidget extends AppWidgetProvider {
 
     private boolean mClearText = false;
 
-    private static String getDecimal() {
-        DecimalFormatSymbols dfs = new DecimalFormatSymbols();
-        return dfs.getDecimalSeparator()+"";
-    }
-
     @Override
     public void onReceive(Context context, Intent intent) {
         int appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, 0);
@@ -125,7 +120,8 @@ public class CalculatorWidget extends AppWidgetProvider {
                 value = "";
                 mClearText = false;
             }
-            value += getDecimal();
+            DecimalFormatSymbols dfs = new DecimalFormatSymbols();
+            value += dfs.getDecimalSeparator() + "";
         } else if(intent.getAction().equals(DIV)) {
             value = addOperator(value, Constants.DIV);
         } else if(intent.getAction().equals(MUL)) {

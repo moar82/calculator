@@ -10,7 +10,6 @@ import android.support.annotation.NonNull;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -23,6 +22,7 @@ import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.android2.calculator3.BasicCalculator;
 import com.android2.calculator3.HistoryAdapter;
 import com.android2.calculator3.R;
 import com.android2.calculator3.util.TextUtil;
@@ -51,11 +51,11 @@ public class DisplayOverlay extends RelativeLayout {
     private VelocityTracker mVelocityTracker;
     private int mMinimumFlingVelocity;
     private int mMaximumFlingVelocity;
-    private RecyclerView mRecyclerView;
+    public RecyclerView mRecyclerView;
     private View mMainDisplay;
     private View mDisplayBackground;
     private View mDisplayForeground;
-    private GraphView mDisplayGraph;
+    public GraphView mDisplayGraph;
     private EditText mFormulaEditText;
     private TextView mResultEditText;
     private View mCalculationsDisplay;
@@ -67,13 +67,13 @@ public class DisplayOverlay extends RelativeLayout {
     private float mLastMotionY;
     private float mLastDeltaY;
     private TranslateState mLastState = TranslateState.COLLAPSED;
-    private TranslateState mState = TranslateState.COLLAPSED;
+    public TranslateState mState = TranslateState.COLLAPSED;
     private int mMinTranslation = -1;
     private int mMaxTranslation = -1;
     private float mMaxDisplayScale = 1f;
     private int mFormulaInitColor = -1;
     private int mResultInitColor = -1;
-    private View mFade;
+    public View mFade;
     private final OnTouchListener mFadeOnTouchListener = new OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
@@ -130,19 +130,21 @@ public class DisplayOverlay extends RelativeLayout {
         });
     }
 
+    public String getNormalizedExpression(String expr, BasicCalculator basicCalculator) {
+        return basicCalculator.mTokenizer.getNormalizedExpression(expr);
+    }
+
+    protected String getLocalizedExpression(String expr, BasicCalculator basicCalculator) {
+        return basicCalculator.mTokenizer.getLocalizedExpression(expr);
+    }
+
+    public void invalidateEqualsButton() {
+        // Do nothing. Extensions of Basic Calculator may want to set the equals button to
+        // Next mode during certain conditions.
+    }
+
     public enum TranslateState {
         EXPANDED, COLLAPSED, PARTIAL, GRAPH_EXPANDED, MINI_GRAPH
-    }
-
-    private TranslateState getTranslateState() {
-        return mState;
-    }
-
-    private void setState(TranslateState state) {
-        if (mState != state) {
-            mLastState = mState;
-            mState = state;
-        }
     }
 
     @Override
@@ -166,8 +168,8 @@ public class DisplayOverlay extends RelativeLayout {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        if (getTranslateState() == TranslateState.GRAPH_EXPANDED
-                || getTranslateState() == TranslateState.MINI_GRAPH) {
+        if (mState == TranslateState.GRAPH_EXPANDED
+                || mState == TranslateState.MINI_GRAPH) {
             // Disable history when showing graph
             return super.onInterceptTouchEvent(ev);
         }
@@ -175,7 +177,7 @@ public class DisplayOverlay extends RelativeLayout {
         int action = MotionEventCompat.getActionMasked(ev);
         float y = ev.getRawY();
         boolean intercepted = false;
-        TranslateState state = getTranslateState();
+        TranslateState state = mState;
 
         switch (action) {
             case MotionEvent.ACTION_DOWN:
@@ -188,7 +190,8 @@ public class DisplayOverlay extends RelativeLayout {
                 if (delta > mTouchSlop) {
                     float dy = y - mInitialMotionY;
                     if (dy < 0) {
-                        intercepted = isScrolledToEnd() && state != TranslateState.COLLAPSED;
+                        intercepted = mLayoutManager.findLastCompletelyVisibleItemPosition() ==
+                                mRecyclerView.getAdapter().getItemCount() - 1 && state != TranslateState.COLLAPSED;
                     } else if (dy > 0) {
                         intercepted = state != TranslateState.EXPANDED;
                     }
@@ -197,11 +200,6 @@ public class DisplayOverlay extends RelativeLayout {
         }
 
         return intercepted;
-    }
-
-    private boolean isScrolledToEnd() {
-        return mLayoutManager.findLastCompletelyVisibleItemPosition() ==
-                mRecyclerView.getAdapter().getItemCount() - 1;
     }
 
     @Override
@@ -231,11 +229,11 @@ public class DisplayOverlay extends RelativeLayout {
     private void handleDown() {
         evaluateHeight();
 
-        if (getRange() == 0) {
+        if ((float) (mMaxTranslation - mMinTranslation) == 0) {
             return;
         }
 
-        if (isCollapsed()) {
+        if (mDisplayGraph.isCollapsed(this)) {
             mFormulaInitColor = mFormulaEditText.getCurrentTextColor();
             mResultInitColor = mResultEditText.getCurrentTextColor();
 
@@ -253,15 +251,32 @@ public class DisplayOverlay extends RelativeLayout {
     }
 
     private void handleMove(MotionEvent event) {
-        float percent = getCurrentPercent();
+        ensureTemplateViewExists();
+        int childHeight = getAdapter().getDisplayEntry() != null ? 0 : mTemplateDisplay.getHeight();
+        for (int i = 0; i < mRecyclerView.getChildCount(); i++) {
+            childHeight += mRecyclerView.getChildAt(i).getHeight();
+        }
+        int maxDistance = mMaxTranslation == 0 ? getHeight() : childHeight;
+        float percent1 = (mLastMotionY - mInitialMotionY) / maxDistance;
+
+        // Start at 100% if open
+        if (mState == TranslateState.EXPANDED ||
+                (mState == TranslateState.PARTIAL && mLastState == TranslateState.EXPANDED)) {
+            percent1 += 1f;
+        }
+        percent1 = Math.min(Math.max(percent1, 0f), 1f);
+        float percent = percent1;
         mAnimator.onUpdate(percent);
         mLastDeltaY = mLastMotionY - event.getRawY();
         mLastMotionY = event.getRawY();
-        setState(TranslateState.PARTIAL);
+        if (mState != TranslateState.PARTIAL) {
+            mLastState = mState;
+            mState = TranslateState.PARTIAL;
+        }
     }
 
     private void handleUp(MotionEvent event) {
-        if (getRange() == 0) {
+        if ((float) (mMaxTranslation - mMinTranslation) == 0) {
             return;
         }
 
@@ -269,13 +284,27 @@ public class DisplayOverlay extends RelativeLayout {
         if (Math.abs(mVelocityTracker.getYVelocity()) > mMinimumFlingVelocity) {
             // the sign on velocity seems unreliable, so use last delta to determine direction
             if (mLastDeltaY < 0) {
-                expand();
+                mDisplayGraph.expand(this);
             } else {
                 collapse();
             }
         } else {
-            if (getCurrentPercent() > 0.5f) {
-                expand();
+            ensureTemplateViewExists();
+            int childHeight = getAdapter().getDisplayEntry() != null ? 0 : mTemplateDisplay.getHeight();
+            for (int i = 0; i < mRecyclerView.getChildCount(); i++) {
+                childHeight += mRecyclerView.getChildAt(i).getHeight();
+            }
+            int maxDistance = mMaxTranslation == 0 ? getHeight() : childHeight;
+            float percent = (mLastMotionY - mInitialMotionY) / maxDistance;
+
+            // Start at 100% if open
+            if (mState == TranslateState.EXPANDED ||
+                    (mState == TranslateState.PARTIAL && mLastState == TranslateState.EXPANDED)) {
+                percent += 1f;
+            }
+            percent = Math.min(Math.max(percent, 0f), 1f);
+            if (percent > 0.5f) {
+                mDisplayGraph.expand(this);
             } else {
                 collapse();
             }
@@ -315,8 +344,21 @@ public class DisplayOverlay extends RelativeLayout {
         }
     }
 
-    private float getCurrentPercent() {
-        int maxDistance = mMaxTranslation == 0 ? getHeight() : getRecyclerHeight();
+    public void expand(Animator.AnimatorListener listener) {
+        if ((float) (mMaxTranslation - mMinTranslation) == 0) {
+            if (listener != null) {
+                listener.onAnimationStart(null);
+                listener.onAnimationEnd(null);
+            }
+            return;
+        }
+
+        ensureTemplateViewExists();
+        int childHeight = getAdapter().getDisplayEntry() != null ? 0 : mTemplateDisplay.getHeight();
+        for (int i = 0; i < mRecyclerView.getChildCount(); i++) {
+            childHeight += mRecyclerView.getChildAt(i).getHeight();
+        }
+        int maxDistance = mMaxTranslation == 0 ? getHeight() : childHeight;
         float percent = (mLastMotionY - mInitialMotionY) / maxDistance;
 
         // Start at 100% if open
@@ -325,27 +367,7 @@ public class DisplayOverlay extends RelativeLayout {
             percent += 1f;
         }
         percent = Math.min(Math.max(percent, 0f), 1f);
-        return percent;
-    }
-
-    private float getRange() {
-        return mMaxTranslation - mMinTranslation;
-    }
-
-    public void expand() {
-        expand(null);
-    }
-
-    public void expand(Animator.AnimatorListener listener) {
-        if (getRange() == 0) {
-            if (listener != null) {
-                listener.onAnimationStart(null);
-                listener.onAnimationEnd(null);
-            }
-            return;
-        }
-
-        DisplayAnimator animator = new DisplayAnimator(getCurrentPercent(), 1f);
+        DisplayAnimator animator = new DisplayAnimator(percent, 1f);
         if (listener != null) {
             animator.addListener(listener);
         }
@@ -355,7 +377,10 @@ public class DisplayOverlay extends RelativeLayout {
         if (mFade != null) {
             mFade.setOnTouchListener(mFadeOnTouchListener);
         }
-        setState(TranslateState.EXPANDED);
+        if (mState != TranslateState.EXPANDED) {
+            mLastState = mState;
+            mState = TranslateState.EXPANDED;
+        }
     }
 
     public void collapse() {
@@ -363,7 +388,7 @@ public class DisplayOverlay extends RelativeLayout {
     }
 
     public void collapse(Animator.AnimatorListener listener) {
-        if (getRange() == 0) {
+        if ((float) (mMaxTranslation - mMinTranslation) == 0) {
             if (listener != null) {
                 listener.onAnimationStart(null);
                 listener.onAnimationEnd(null);
@@ -371,7 +396,21 @@ public class DisplayOverlay extends RelativeLayout {
             return;
         }
 
-        DisplayAnimator animator = new DisplayAnimator(getCurrentPercent(), 0f);
+        ensureTemplateViewExists();
+        int childHeight = getAdapter().getDisplayEntry() != null ? 0 : mTemplateDisplay.getHeight();
+        for (int i = 0; i < mRecyclerView.getChildCount(); i++) {
+            childHeight += mRecyclerView.getChildAt(i).getHeight();
+        }
+        int maxDistance = mMaxTranslation == 0 ? getHeight() : childHeight;
+        float percent = (mLastMotionY - mInitialMotionY) / maxDistance;
+
+        // Start at 100% if open
+        if (mState == TranslateState.EXPANDED ||
+                (mState == TranslateState.PARTIAL && mLastState == TranslateState.EXPANDED)) {
+            percent += 1f;
+        }
+        percent = Math.min(Math.max(percent, 0f), 1f);
+        DisplayAnimator animator = new DisplayAnimator(percent, 0f);
         if (listener != null) {
             animator.addListener(listener);
         }
@@ -381,24 +420,22 @@ public class DisplayOverlay extends RelativeLayout {
         if (mFade != null) {
             mFade.setOnTouchListener(null);
         }
-        setState(TranslateState.COLLAPSED);
+        if (mState != TranslateState.COLLAPSED) {
+            mLastState = mState;
+            mState = TranslateState.COLLAPSED;
+        }
     }
 
     public boolean isGraphExpanded() {
-        return getTranslateState() == TranslateState.GRAPH_EXPANDED;
-    }
-
-    public boolean isExpanded() {
-        return getTranslateState() == TranslateState.EXPANDED;
-    }
-
-    public boolean isCollapsed() {
-        return getTranslateState() == TranslateState.COLLAPSED;
+        return mState == TranslateState.GRAPH_EXPANDED;
     }
 
     public void transitionToGraph(Animator.AnimatorListener listener) {
         if (mState == TranslateState.COLLAPSED) {
-            setState(TranslateState.MINI_GRAPH);
+            if (mState != TranslateState.MINI_GRAPH) {
+                mLastState = mState;
+                mState = TranslateState.MINI_GRAPH;
+            }
 
             mDisplayGraph.setVisibility(View.VISIBLE);
 
@@ -451,7 +488,10 @@ public class DisplayOverlay extends RelativeLayout {
 
     public void transitionToDisplay(Animator.AnimatorListener listener) {
         if (mState == TranslateState.MINI_GRAPH) {
-            setState(TranslateState.COLLAPSED);
+            if (mState != TranslateState.COLLAPSED) {
+                mLastState = mState;
+                mState = TranslateState.COLLAPSED;
+            }
 
             // Show the result again
             mResultEditText.setVisibility(View.VISIBLE);
@@ -481,7 +521,10 @@ public class DisplayOverlay extends RelativeLayout {
 
     public void expandGraph() {
         if (mState == TranslateState.MINI_GRAPH) {
-            setState(TranslateState.GRAPH_EXPANDED);
+            if (mState != TranslateState.GRAPH_EXPANDED) {
+                mLastState = mState;
+                mState = TranslateState.GRAPH_EXPANDED;
+            }
             new GraphExpansionAnimator(0f, 1f).start();
             mDisplayGraph.setPanEnabled(true);
             mDisplayGraph.setZoomEnabled(true);
@@ -490,7 +533,10 @@ public class DisplayOverlay extends RelativeLayout {
 
     public void collapseGraph() {
         if (mState == TranslateState.GRAPH_EXPANDED) {
-            setState(TranslateState.MINI_GRAPH);
+            if (mState != TranslateState.MINI_GRAPH) {
+                mLastState = mState;
+                mState = TranslateState.MINI_GRAPH;
+            }
             new GraphExpansionAnimator(1f, 0f).start();
             mDisplayGraph.setPanEnabled(false);
             mDisplayGraph.setZoomEnabled(false);
@@ -501,21 +547,12 @@ public class DisplayOverlay extends RelativeLayout {
         mRecyclerView.setAdapter(adapter);
     }
 
-    public void attachToRecyclerView(ItemTouchHelper itemTouchHelper) {
-        itemTouchHelper.attachToRecyclerView(mRecyclerView);
-    }
-
     public HistoryAdapter getAdapter() {
         return ((HistoryAdapter) mRecyclerView.getAdapter());
     }
 
-    private boolean hasDisplayEntry() {
-        HistoryAdapter adapter = (HistoryAdapter) mRecyclerView.getAdapter();
-        return adapter.getDisplayEntry() != null;
-    }
-
     private void evaluateHeight() {
-        if (hasDisplayEntry()) {
+        if (mDisplayGraph.hasDisplayEntry(this)) {
             // The display turns into an entry item, which increases the recycler height by 1.
             // That means the height is dirty now :( Try again later.
             return;
@@ -530,7 +567,12 @@ public class DisplayOverlay extends RelativeLayout {
         }
 
         mMinTranslation = -getHeight() + mDisplayHeight;
-        int childHeight = getRecyclerHeight();
+        ensureTemplateViewExists();
+        int childHeight1 = getAdapter().getDisplayEntry() != null ? 0 : mTemplateDisplay.getHeight();
+        for (int i = 0; i < mRecyclerView.getChildCount(); i++) {
+            childHeight1 += mRecyclerView.getChildAt(i).getHeight();
+        }
+        int childHeight = childHeight1;
         if (childHeight < getHeight()) {
             mMaxTranslation = -getHeight() + childHeight;
         } else {
@@ -538,21 +580,8 @@ public class DisplayOverlay extends RelativeLayout {
         }
     }
 
-    private int getRecyclerHeight() {
-        ensureTemplateViewExists();
-        int childHeight = getAdapter().getDisplayEntry() != null ? 0 : mTemplateDisplay.getHeight();
-        for (int i = 0; i < mRecyclerView.getChildCount(); i++) {
-            childHeight += mRecyclerView.getChildAt(i).getHeight();
-        }
-        return childHeight;
-    }
-
     public void scrollToMostRecent() {
         mRecyclerView.scrollToPosition(mRecyclerView.getAdapter().getItemCount()-1);
-    }
-
-    public void setFade(View view) {
-        mFade = view;
     }
 
     /**
@@ -589,12 +618,12 @@ public class DisplayOverlay extends RelativeLayout {
         }
 
         public void onUpdate(float percent) {
-            if (getRange() == 0) {
+            if ((float) (mMaxTranslation - mMinTranslation) == 0) {
                 return;
             }
 
             // Update the drag animation
-            float txY = mMinTranslation + percent * (getRange());
+            float txY = mMinTranslation + percent * ((float) (mMaxTranslation - mMinTranslation));
             setTranslationY(txY);
 
             // Update the background alpha

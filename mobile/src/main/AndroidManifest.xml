@@ -8,8 +8,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
-
-    <uses-sdk android:minSdkVersion="14"
+    <uses-sdk android:minSdkVersion="19"
         android:targetSdkVersion="22" />
 
     <application
@@ -37,7 +36,7 @@
             android:resource="@dimen/app_minimumsize_h" />
 
         <activity
-            android:name=".Calculator"
+            android:name=".MatrixCalculator"
             android:exported="true"
             android:theme="@style/Theme.Calculator"
             android:windowSoftInputMode="stateAlwaysHidden">

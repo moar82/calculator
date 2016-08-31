@@ -5,8 +5,20 @@
       <GradleProjectSettings>
         <option name="distributionType" value="DEFAULT_WRAPPED" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
-        <option name="gradleJvm" value="1.7" />
         <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/FloatingView" />
+            <option value="$PROJECT_DIR$/GDK-ProgressBar" />
+            <option value="$PROJECT_DIR$/MathLibrary" />
+            <option value="$PROJECT_DIR$/ThemeEngine" />
+            <option value="$PROJECT_DIR$/circularreveal" />
+            <option value="$PROJECT_DIR$/legacy-mobile" />
+            <option value="$PROJECT_DIR$/mobile" />
+            <option value="$PROJECT_DIR$/wear" />
+          </set>
+        </option>
+        <option name="myModules">
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/FloatingView" />

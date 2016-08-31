@@ -27,7 +27,16 @@ public class AnimatingDrawable extends Drawable implements Animatable {
             public void onAnimationUpdate(ValueAnimator animation) {
                 // Normalize the position in case the interporator isn't linear
                 int pos = Math.max(Math.min((int) animation.getAnimatedValue(), mFrames.length - 1), 0);
-                setFrame(mFrames[pos]);
+                if (mCurrentFrame != mFrames[pos]) {
+                    mCurrentFrame = mFrames[pos];
+
+                    int l = (mIntrinsicWidth - mCurrentFrame.getIntrinsicWidth()) / 2;
+                    int t = (mIntrinsicHeight - mCurrentFrame.getIntrinsicHeight()) / 2;
+                    int r = l + mCurrentFrame.getIntrinsicWidth();
+                    int b = t + mCurrentFrame.getIntrinsicHeight();
+                    mCurrentFrame.setBounds(l, t, r, b);
+                    invalidateSelf();
+                }
             }
         });
         mAnimator.setDuration(duration);
@@ -39,16 +48,8 @@ public class AnimatingDrawable extends Drawable implements Animatable {
             mIntrinsicHeight = Math.max(mIntrinsicHeight, drawable.getIntrinsicWidth());
         }
 
-        setFrame(mFrames[0]);
-    }
-
-    public Animator getAnimator() {
-        return mAnimator;
-    }
-
-    private void setFrame(Drawable drawable) {
-        if (mCurrentFrame != drawable) {
-            mCurrentFrame = drawable;
+        if (mCurrentFrame != mFrames[0]) {
+            mCurrentFrame = mFrames[0];
 
             int l = (mIntrinsicWidth - mCurrentFrame.getIntrinsicWidth()) / 2;
             int t = (mIntrinsicHeight - mCurrentFrame.getIntrinsicHeight()) / 2;
@@ -57,6 +58,10 @@ public class AnimatingDrawable extends Drawable implements Animatable {
             mCurrentFrame.setBounds(l, t, r, b);
             invalidateSelf();
         }
+    }
+
+    public Animator getAnimator() {
+        return mAnimator;
     }
 
     @Override

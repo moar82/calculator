@@ -15,6 +15,8 @@
 */
 package com.android2.calculator3;
 
+import android.text.TextUtils;
+
 import com.xlythe.math.Base;
 import com.xlythe.math.Solver;
 
@@ -38,7 +40,7 @@ public class CalculatorExpressionEvaluator {
 
         try {
             if (expr.length() == 0 || Double.valueOf(expr) != null) {
-                callback.onEvaluate(expr, null, Calculator.INVALID_RES_ID);
+                callback.onEvaluate(expr, null, MatrixCalculator.INVALID_RES_ID);
                 return;
             }
         } catch (NumberFormatException e) {
@@ -48,7 +50,7 @@ public class CalculatorExpressionEvaluator {
         try {
             String result = mSolver.solve(expr);
             result = mTokenizer.getLocalizedExpression(result);
-            callback.onEvaluate(expr, result, Calculator.INVALID_RES_ID);
+            callback.onEvaluate(expr, result, MatrixCalculator.INVALID_RES_ID);
         } catch (SyntaxException e) {
             callback.onEvaluate(expr, null, R.string.error);
         }
@@ -57,7 +59,7 @@ public class CalculatorExpressionEvaluator {
     public void setBase(String expr, Base base, EvaluateCallback callback) {
         try {
             String result = mSolver.getBaseModule().setBase(expr, base);
-            callback.onEvaluate(expr, result, Calculator.INVALID_RES_ID);
+            callback.onEvaluate(expr, result, MatrixCalculator.INVALID_RES_ID);
         } catch (SyntaxException e) {
             callback.onEvaluate(expr, null, R.string.error);
         }
@@ -65,6 +67,23 @@ public class CalculatorExpressionEvaluator {
 
     public Solver getSolver() {
         return mSolver;
+    }
+
+    protected boolean saveHistory(String expr, String result, boolean ensureResult, BasicCalculator basicCalculator) {
+        if (basicCalculator.mHistory == null) {
+            return false;
+        }
+
+        expr = basicCalculator.mFormulaEditText.cleanExpression(expr, basicCalculator);
+        if (!ensureResult ||
+                (!TextUtils.isEmpty(expr)
+                        && !TextUtils.isEmpty(result)
+                        && !Solver.equal(expr, result)
+                        && (basicCalculator.mHistory.current() == null || !basicCalculator.mHistory.current().getFormula().equals(expr)))) {
+            basicCalculator.mHistory.enter(expr, result);
+            return true;
+        }
+        return false;
     }
 
     public interface EvaluateCallback {

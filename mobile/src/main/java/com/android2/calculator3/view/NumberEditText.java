@@ -22,7 +22,10 @@ import android.text.InputType;
 import android.text.Spanned;
 import android.text.method.NumberKeyListener;
 import android.util.AttributeSet;
+import android.view.ActionMode;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 
@@ -39,17 +42,44 @@ public class NumberEditText extends ResizingEditText {
 
     public NumberEditText(Context context) {
         super(context);
-        setUp();
+        setUp(context, null);
     }
 
     public NumberEditText(Context context, AttributeSet attr) {
         super(context, attr);
-        setUp();
+        setUp(context, attr);
     }
 
-    private void setUp() {
+    private void setUp(Context context, AttributeSet attrs) {
         setEditableFactory(mFactory);
-        setKeyListener(new KeyListener());
+        NumberKeyListener calculatorKeyListener = new NumberKeyListener() {
+            @Override
+            public int getInputType() {
+                return EditorInfo.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+            }
+
+            @Override
+            protected char[] getAcceptedChars() {
+                return ACCEPTED_CHARS;
+            }
+
+            @Override
+            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                /*
+                 * the EditText should still accept letters (eg. 'sin') coming from the on-screen touch buttons, so don't filter anything.
+                 */
+                return null;
+            }
+
+            @Override
+            public boolean onKeyDown(View view, Editable content, int keyCode, KeyEvent event) {
+                if(keyCode == KeyEvent.KEYCODE_DEL) {
+                    NumberEditText.this.backspace();
+                }
+                return super.onKeyDown(view, content, keyCode, event);
+            }
+        };
+        setKeyListener(calculatorKeyListener);
     }
 
     public Editable.Factory getEditableFactory() {
@@ -69,31 +99,25 @@ public class NumberEditText extends ResizingEditText {
         }
     }
 
-    private class KeyListener extends NumberKeyListener {
+    private class NoTextSelectionMode implements ActionMode.Callback {
         @Override
-        public int getInputType() {
-            return EditorInfo.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            // Prevents the selection action mode on double tap.
+            return false;
         }
 
         @Override
-        protected char[] getAcceptedChars() {
-            return ACCEPTED_CHARS;
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return false;
         }
 
         @Override
-        public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-                /*
-                 * the EditText should still accept letters (eg. 'sin') coming from the on-screen touch buttons, so don't filter anything.
-                 */
-            return null;
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            return false;
         }
 
         @Override
-        public boolean onKeyDown(View view, Editable content, int keyCode, KeyEvent event) {
-            if(keyCode == KeyEvent.KEYCODE_DEL) {
-                NumberEditText.this.backspace();
-            }
-            return super.onKeyDown(view, content, keyCode, event);
+        public void onDestroyActionMode(ActionMode mode) {
         }
     }
 }

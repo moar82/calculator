@@ -10,12 +10,14 @@ import android.graphics.Paint.Style;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Looper;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
+import com.android2.calculator3.HistoryAdapter;
 import com.android2.calculator3.R;
 import com.xlythe.math.Point;
 
@@ -796,6 +798,31 @@ public class GraphView extends View {
         mRemainderX += (int) x % mLineMargin;
         mRemainderY += (int) y % mLineMargin;
         invalidate();
+    }
+
+    public void attachToRecyclerView(ItemTouchHelper itemTouchHelper, DisplayOverlay displayOverlay) {
+        itemTouchHelper.attachToRecyclerView(displayOverlay.mRecyclerView);
+    }
+
+    public boolean isCollapsed(DisplayOverlay displayOverlay) {
+        return displayOverlay.mState == DisplayOverlay.TranslateState.COLLAPSED;
+    }
+
+    public void setFade(View view, DisplayOverlay displayOverlay) {
+        displayOverlay.mFade = view;
+    }
+
+    boolean hasDisplayEntry(DisplayOverlay displayOverlay) {
+        HistoryAdapter adapter = (HistoryAdapter) displayOverlay.mRecyclerView.getAdapter();
+        return adapter.getDisplayEntry() != null;
+    }
+
+    public boolean isExpanded(DisplayOverlay displayOverlay) {
+        return displayOverlay.mState == DisplayOverlay.TranslateState.EXPANDED;
+    }
+
+    public void expand(DisplayOverlay displayOverlay) {
+        displayOverlay.expand(null);
     }
 
     public interface PanListener {

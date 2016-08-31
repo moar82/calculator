@@ -82,6 +82,11 @@ public class CalculatorExpressionTokenizer {
         return expr;
     }
 
+    protected void onDelete(BasicCalculator basicCalculator) {
+        // Delete works like backspace; remove the last character from the expression.
+        basicCalculator.mFormulaEditText.backspace();
+    }
+
     private class Localizer {
         String english;
         String local;

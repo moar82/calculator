@@ -22,6 +22,7 @@ import android.text.Html;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 
+import com.android2.calculator3.BasicCalculator;
 import com.android2.calculator3.R;
 import com.android2.calculator3.util.TextUtil;
 import com.xlythe.math.BaseModule;
@@ -195,11 +196,6 @@ public class FormattedNumberEditText extends NumberEditText {
                 return;
             }
 
-            // don't allow the first character to be an operator
-            if(selectionHandle == 0 && Solver.isOperator(text) && text != Constants.MINUS) {
-                return;
-            }
-
             // don't allow multiple successive operators
             if(Solver.isOperator(text) && text != Constants.MINUS) {
                 while(Solver.isOperator(prevChar)) {
@@ -332,6 +328,13 @@ public class FormattedNumberEditText extends NumberEditText {
 
     public boolean isDebuggingEnabled() {
         return mDebug;
+    }
+
+    public String cleanExpression(String expr, BasicCalculator basicCalculator) {
+        expr = EquationFormatter.appendParenthesis(expr);
+        expr = Solver.clean(expr);
+        expr = basicCalculator.mTokenizer.getLocalizedExpression(expr);
+        return expr;
     }
 
     public class MutableInteger {

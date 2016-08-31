@@ -16,24 +16,23 @@
 package com.android2.calculator3;
 
 import android.os.Bundle;
-import android.os.Debug;
 import android.view.View;
 
-import com.android2.calculator3.view.CalculatorEditText;
 import com.android2.calculator3.view.FormattedNumberEditText;
 import com.android2.calculator3.view.MatrixComponent;
 
 /**
  * Adds graphing and base switching to the basic calculator.
  * */
-public abstract class MatrixCalculator extends GraphingCalculator {
+public class MatrixCalculator extends HexCalculator {
 
     private FormattedNumberEditText mFormulaEditText;
 
     protected void initialize(Bundle savedInstanceState) {
 
         super.initialize(savedInstanceState);
-        mFormulaEditText = (FormattedNumberEditText) findViewById(R.id.formula);
+        this.mFormulaEditText = (FormattedNumberEditText) findViewById(R.id.formula);
+        //mFormulaEditText = (FormattedNumberEditText) findViewById(R.id.formula);
     }
 
     @Override
@@ -42,6 +41,7 @@ public abstract class MatrixCalculator extends GraphingCalculator {
             case R.id.matrix:
                 insert(MatrixComponent.getPattern());
                 mFormulaEditText.setSelection(mFormulaEditText.getSelectionStart() - MatrixComponent.getPattern().length() + 2);
+                //mFormulaEditText.setSelection(mFormulaEditText.getSelectionStart() - MatrixComponent.getPattern().length() + 2);
                 return;
             case R.id.plus_col:
             case R.id.plus_row:

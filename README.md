@@ -1,3 +1,7 @@
+This app was refactored using EARMO (Energy-aware Refactoring approach for MObile apps)
+For More information visit http://swatlab.polymtl.ca/EARMO/
+
+
 # Calculator
 
 Calculator is a simple 4 function calculator, with a panel that has more advanced functions when you need them. It includes history, real time graphing, base conversion, and more. It also comes with a lockscreen widget, a floating calculator, and a wear app so you can use whichever is most convenient.

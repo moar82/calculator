@@ -90,7 +90,22 @@ public class FloatingCalculatorPageAdapter extends PagerAdapter {
                 mViews[position] = View.inflate(mContext, R.layout.floating_calculator_history, null);
                 RecyclerView historyView =
                         (RecyclerView) mViews[position].findViewById(R.id.history);
-                setUpHistory(historyView);
+                LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
+                layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+                layoutManager.setReverseLayout(true);
+                layoutManager.setStackFromEnd(true);
+                historyView.setLayoutManager(layoutManager);
+
+                final FloatingHistoryAdapter historyAdapter = new FloatingHistoryAdapter(mContext, mSolver, mHistory, mHistoryCallback);
+                mHistory.setObserver(new History.Observer() {
+                    @Override
+                    public void notifyDataSetChanged() {
+                        historyAdapter.notifyDataSetChanged();
+                    }
+                });
+                historyView.setAdapter(historyAdapter);
+
+                layoutManager.scrollToPosition(historyAdapter.getItemCount() - 1);
 
                 // This is the first time loading the history panel -- disable it until the user moves to it
                 setEnabled(mViews[position], false);
@@ -137,22 +152,4 @@ public class FloatingCalculatorPageAdapter extends PagerAdapter {
         }
     }
 
-    private void setUpHistory(RecyclerView historyView) {
-        LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
-        layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
-        layoutManager.setReverseLayout(true);
-        layoutManager.setStackFromEnd(true);
-        historyView.setLayoutManager(layoutManager);
-
-        final FloatingHistoryAdapter historyAdapter = new FloatingHistoryAdapter(mContext, mSolver, mHistory, mHistoryCallback);
-        mHistory.setObserver(new History.Observer() {
-            @Override
-            public void notifyDataSetChanged() {
-                historyAdapter.notifyDataSetChanged();
-            }
-        });
-        historyView.setAdapter(historyAdapter);
-
-        layoutManager.scrollToPosition(historyAdapter.getItemCount() - 1);
-    }
 }

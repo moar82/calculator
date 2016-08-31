@@ -28,7 +28,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewTreeObserver;
 
-import com.android2.calculator3.Calculator;
+import com.android2.calculator3.MatrixCalculator;
 import com.android2.calculator3.R;
 import com.xlythe.floatingview.AnimationFinishedListener;
 
@@ -327,19 +327,19 @@ public class CalculatorPadView extends RevealFrameLayout {
     }
 
     protected void showFab() {
-        ((Calculator) getContext()).showFab();
+        ((MatrixCalculator) getContext()).showFab();
     }
 
     protected void hideFab() {
-        ((Calculator) getContext()).hideFab();
+        ((MatrixCalculator) getContext()).hideFab();
     }
 
     protected void showTray() {
-        ((Calculator) getContext()).showTray();
+        ((MatrixCalculator) getContext()).showTray();
     }
 
     protected void hideTray() {
-        ((Calculator) getContext()).hideTray();
+        ((MatrixCalculator) getContext()).hideTray();
     }
 
     private void setState(TranslateState state) {

@@ -6,16 +6,13 @@ import android.text.InputType;
 import android.text.TextUtils;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ImageButton;
 import android.widget.ViewSwitcher;
 
-import com.android2.calculator3.Calculator;
+import com.android2.calculator3.MatrixCalculator;
 import com.android2.calculator3.CalculatorExpressionEvaluator;
 import com.android2.calculator3.CalculatorExpressionTokenizer;
 import com.android2.calculator3.Clipboard;
-import com.android2.calculator3.HistoryAdapter;
 import com.android2.calculator3.R;
 import com.android2.calculator3.view.BackspaceImageButton;
 import com.android2.calculator3.view.CalculatorEditText;
@@ -93,14 +90,29 @@ public class FloatingCalculator extends FloatingView {
                         }
                         break;
                     case R.id.eq:
-                        mEvaluator.evaluate(getActiveEditText().getCleanText(), new CalculatorExpressionEvaluator.EvaluateCallback() {
+                        mEvaluator.evaluate(((CalculatorEditText) mDisplay.getCurrentView()).getCleanText(), new CalculatorExpressionEvaluator.EvaluateCallback() {
                             @Override
                             public void onEvaluate(String expr, String result, int errorResourceId) {
                                 mDisplay.showNext();
-                                if (errorResourceId != Calculator.INVALID_RES_ID) {
+                                if (errorResourceId != MatrixCalculator.INVALID_RES_ID) {
                                     onError(errorResourceId);
                                 } else {
-                                    setText(result);
+                                    mDelete.setState(State.CLEAR == State.DELETE ? BackspaceImageButton.State.DELETE : BackspaceImageButton.State.CLEAR);
+                                    if(mState != State.CLEAR) {
+                                        switch (State.CLEAR) {
+                                            case CLEAR:
+                                                ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                                                break;
+                                            case DELETE:
+                                                ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                                                break;
+                                            case ERROR:
+                                                ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.calculator_error_color));
+                                                break;
+                                        }
+                                        mState = State.CLEAR;
+                                    }
+                                    ((CalculatorEditText) mDisplay.getCurrentView()).setText(result);
                                 }if (saveHistory(expr, result)) {
                                     RecyclerView history = (RecyclerView) child.findViewById(R.id.history);
                                     history.getLayoutManager().scrollToPosition(history.getAdapter().getItemCount() - 1);
@@ -109,7 +121,22 @@ public class FloatingCalculator extends FloatingView {
                         });
                         break;
                     case R.id.parentheses:
-                        setText("(" + getActiveEditText().getText() + ")");
+                        mDelete.setState(State.CLEAR == State.DELETE ? BackspaceImageButton.State.DELETE : BackspaceImageButton.State.CLEAR);
+                        if(mState != State.CLEAR) {
+                            switch (State.CLEAR) {
+                                case CLEAR:
+                                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                                    break;
+                                case DELETE:
+                                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                                    break;
+                                case ERROR:
+                                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.calculator_error_color));
+                                    break;
+                            }
+                            mState = State.CLEAR;
+                        }
+                        ((CalculatorEditText) mDisplay.getCurrentView()).setText("(" + ((CalculatorEditText) mDisplay.getCurrentView()).getText() + ")");
                         break;
                     default:
                         if(((Button) v).getText().toString().length() >= 2) {
@@ -138,8 +165,22 @@ public class FloatingCalculator extends FloatingView {
         FloatingHistoryAdapter.HistoryItemCallback historyItemCallback = new FloatingHistoryAdapter.HistoryItemCallback() {
             @Override
             public void onHistoryItemSelected(HistoryEntry entry) {
-                setState(State.DELETE);
-                getActiveEditText().insert(entry.getResult());
+                mDelete.setState(State.DELETE == State.DELETE ? BackspaceImageButton.State.DELETE : BackspaceImageButton.State.CLEAR);
+                if(mState != State.DELETE) {
+                    switch (State.DELETE) {
+                        case CLEAR:
+                            ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                            break;
+                        case DELETE:
+                            ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                            break;
+                        case ERROR:
+                            ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.calculator_error_color));
+                            break;
+                    }
+                    mState = State.DELETE;
+                }
+                ((CalculatorEditText) mDisplay.getCurrentView()).insert(entry.getResult());
             }
         };
         final FloatingCalculatorPageAdapter adapter = new FloatingCalculatorPageAdapter(
@@ -188,7 +229,21 @@ public class FloatingCalculator extends FloatingView {
             }
         });
 
-        setState(State.DELETE);
+        mDelete.setState(State.DELETE == State.DELETE ? BackspaceImageButton.State.DELETE : BackspaceImageButton.State.CLEAR);
+        if(mState != State.DELETE) {
+            switch (State.DELETE) {
+                case CLEAR:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                    break;
+                case DELETE:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                    break;
+                case ERROR:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.calculator_error_color));
+                    break;
+            }
+            mState = State.DELETE;
+        }
 
         return child;
     }
@@ -217,59 +272,103 @@ public class FloatingCalculator extends FloatingView {
     }
 
     private void onDelete() {
-        setState(State.DELETE);
-        getActiveEditText().backspace();
+        mDelete.setState(State.DELETE == State.DELETE ? BackspaceImageButton.State.DELETE : BackspaceImageButton.State.CLEAR);
+        if(mState != State.DELETE) {
+            switch (State.DELETE) {
+                case CLEAR:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                    break;
+                case DELETE:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                    break;
+                case ERROR:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.calculator_error_color));
+                    break;
+            }
+            mState = State.DELETE;
+        }
+        ((CalculatorEditText) mDisplay.getCurrentView()).backspace();
     }
 
     private void onClear() {
-        setState(State.DELETE);
-        getActiveEditText().clear();
-    }
-
-    private void setText(String text) {
-        setState(State.CLEAR);
-        getActiveEditText().setText(text);
+        mDelete.setState(State.DELETE == State.DELETE ? BackspaceImageButton.State.DELETE : BackspaceImageButton.State.CLEAR);
+        if(mState != State.DELETE) {
+            switch (State.DELETE) {
+                case CLEAR:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                    break;
+                case DELETE:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                    break;
+                case ERROR:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.calculator_error_color));
+                    break;
+            }
+            mState = State.DELETE;
+        }
+        ((CalculatorEditText) mDisplay.getCurrentView()).clear();
     }
 
     private void onInsert(String text) {
         if (mState == State.ERROR || (mState == State.CLEAR && !Solver.isOperator(text))) {
-            setText(text);
+            mDelete.setState(State.CLEAR == State.DELETE ? BackspaceImageButton.State.DELETE : BackspaceImageButton.State.CLEAR);
+            if(mState != State.CLEAR) {
+                switch (State.CLEAR) {
+                    case CLEAR:
+                        ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                        break;
+                    case DELETE:
+                        ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                        break;
+                    case ERROR:
+                        ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.calculator_error_color));
+                        break;
+                }
+                mState = State.CLEAR;
+            }
+            ((CalculatorEditText) mDisplay.getCurrentView()).setText(text);
         } else {
-            getActiveEditText().insert(text);
+            ((CalculatorEditText) mDisplay.getCurrentView()).insert(text);
         }
 
-        setState(State.DELETE);
+        mDelete.setState(State.DELETE == State.DELETE ? BackspaceImageButton.State.DELETE : BackspaceImageButton.State.CLEAR);
+        if(mState != State.DELETE) {
+            switch (State.DELETE) {
+                case CLEAR:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                    break;
+                case DELETE:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                    break;
+                case ERROR:
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.calculator_error_color));
+                    break;
+            }
+            mState = State.DELETE;
+        }
     }
 
     private void onError(int resId) {
-        setState(State.ERROR);
-        getActiveEditText().setText(resId);
-    }
-
-    private void setState(State state) {
-        mDelete.setState(state == State.DELETE ? BackspaceImageButton.State.DELETE : BackspaceImageButton.State.CLEAR);
-        if(mState != state) {
-            switch (state) {
+        mDelete.setState(State.ERROR == State.DELETE ? BackspaceImageButton.State.DELETE : BackspaceImageButton.State.CLEAR);
+        if(mState != State.ERROR) {
+            switch (State.ERROR) {
                 case CLEAR:
-                    getActiveEditText().setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
                     break;
                 case DELETE:
-                    getActiveEditText().setTextColor(getResources().getColor(R.color.display_formula_text_color));
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.display_formula_text_color));
                     break;
                 case ERROR:
-                    getActiveEditText().setTextColor(getResources().getColor(R.color.calculator_error_color));
+                    ((CalculatorEditText) mDisplay.getCurrentView()).setTextColor(getResources().getColor(R.color.calculator_error_color));
                     break;
             }
-            mState = state;
+            mState = State.ERROR;
         }
+        ((CalculatorEditText) mDisplay.getCurrentView()).setText(resId);
     }
 
     private void copyContent(String text) {
         Clipboard.copy(getContext(), text);
-    }
-
-    private CalculatorEditText getActiveEditText() {
-        return (CalculatorEditText) mDisplay.getCurrentView();
     }
 
     protected boolean saveHistory(String expr, String result) {
