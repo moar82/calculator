@@ -1,5 +1,5 @@
 This app was refactored using EARMO (Energy-aware Refactoring approach for MObile apps)
-For More information visit http://swatlab.polymtl.ca/EARMO/
+For More information visit http://swat.polymtl.ca/EARMO/
 
 
 # Calculator
